@@ -4,7 +4,7 @@ youtubeから音声をダウンロードし、テキスト化してRAGにて音�
 # how to use
 ```
 $ cd audio_search_demo
-$ poetry run python main.py
+$ poetry run python --------
 ```
 
 ## TODO
