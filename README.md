@@ -19,6 +19,11 @@
 - whisper
 - qdrant
 
+```
+# qdrantのdocker imageのpullと実行
+$ docker pull qdrant/qdrant
+$ docker run -p 6333:6333 qdrant/qdrant
+```
 
 # 以下工事中
 
