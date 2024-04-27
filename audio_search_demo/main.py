@@ -5,6 +5,8 @@ from audio_search_utils import download_movie_from_youtube, extruct_audio_from_m
 import embedding_text
 import pandas as pd
 from qdrant_work import QdrantManager
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 
 def main():
@@ -35,27 +37,45 @@ def main():
     save_text_file = base_path / 'data' / 'text' / f'{MOVIE_NAME}.tsv'
     if not save_text_file.exists():
         extract_text_from_audio(save_video_file, save_text_file)
-        text_df = pd.read_csv(save_text_file, sep='\t')
+        df_text = pd.read_csv(save_text_file, sep='\t')
     else:
         print(f'{save_text_file.name} is already extracted')
-        text_df = pd.read_csv(save_text_file, sep='\t')
+        df_text = pd.read_csv(save_text_file, sep='\t')
 
     # text embedding
-    EMBEDDING_MODEL = settings.EMBEDDING_MODEL
-    embeddings = embedding_text.run(EMBEDDING_MODEL, text_df['text'].to_list()[:3])
-    text_df['vector'] = pd.Series(embeddings.tolist())
-
-    # save embeddings
     QDRANT_URL = settings.QDRANT_URL
     QDRANT_COLLECTION_NAME = settings.QDRANT_COLLECTION_NAME
-    EMBEDDING_DIM = settings.EMBEDDING_DIM
     qdrant_manager = QdrantManager(url=QDRANT_URL, collection_name=QDRANT_COLLECTION_NAME)
-    qdrant_manager.create_collection(dim=EMBEDDING_DIM)
-    ids = text_df['id'].to_list()[:3]
-    vectors = text_df['vector'].to_list()[:3]
-    payloads = [{}, {}, {}]  # payloadを使う際は、{"city": "Berlin"}のように辞書で指定
-    qdrant_manager.add_vectors(ids, vectors, payloads)
 
+    df_file = base_path / 'data' / 'text' / f'{MOVIE_NAME}.parquet'
+    if df_file.exists():
+        table_loaded = pq.read_table(df_file)
+        df_text = table_loaded.to_pandas()
+        vectors = df_text['vector'].to_list()
+    else:
+        EMBEDDING_MODEL = settings.EMBEDDING_MODEL
+        embeddings = embedding_text.run(EMBEDDING_MODEL, df_text['text'].to_list())
+        df_text['vector'] = pd.Series(embeddings.tolist())
+        table = pa.Table.from_pandas(df_text)
+        pq.write_table(table, df_file)
+
+        # save embeddings
+        EMBEDDING_DIM = settings.EMBEDDING_DIM
+        qdrant_manager.create_collection(dim=EMBEDDING_DIM)
+        ids = df_text['id'].to_list()
+        vectors = df_text['vector'].to_list()
+        payloads = [{}]  # payloadを使う際は、{"city": "Berlin"}のように辞書で指定。現在は利用していない。
+        qdrant_manager.add_vectors(ids, vectors, payloads)
+
+    # search
+    search_id = 7
+    print(f'検索対象(id={search_id}): {df_text.query(f"id == {search_id}").text.item()}')
+
+    search_results = qdrant_manager.search_vectors(vectors[search_id], top_k=3)
+    for rank, search_result in enumerate(search_results):
+        text = df_text.query(f'id == {search_result.id}').text.item()
+        score = round(search_result.score, 2)
+        print(f' 検索結果(id={search_result.id}) rank:{rank + 1} score:{score} text:{text}')
 
 if __name__ == '__main__':
     main()

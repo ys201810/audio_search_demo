@@ -16,6 +16,7 @@ sentence-transformers = "^2.7.0"
 pandas = "^2.2.2"
 chromadb = "^0.5.0"
 qdrant-client = "^1.9.0"
+pyarrow = "^16.0.0"
 
 
 [build-system]

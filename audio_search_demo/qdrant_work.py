@@ -21,8 +21,9 @@ class QdrantManager:
     def add_vectors(self, ids: list, vectors: list, payloads: list):
         # make points
         points = []
-        for id, vector, payload in zip(ids, vectors, payloads):
-            points.append(PointStruct(id=id, vector=vector, payload=payload))
+        payload_value = {}  # payloadを利用する場合は、payloadsを利用
+        for id, vector in zip(ids, vectors):  # zip(ids, vectors, payloads)
+            points.append(PointStruct(id=id, vector=vector, payload=payload_value))  # payloadを使う際は、payloadを指定。
         # Insert vectors
         operation_info = self.client.upsert(
             collection_name=self.collection_name,
@@ -30,3 +31,11 @@ class QdrantManager:
             points=points,
         )
         print(operation_info)
+
+    def search_vectors(self, vector: list, top_k: int):
+        search_results = self.client.search(
+            collection_name=self.collection_name, query_vector=vector, limit=top_k
+        )
+
+        return search_results
+
