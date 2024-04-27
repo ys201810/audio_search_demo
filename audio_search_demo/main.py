@@ -4,6 +4,7 @@ import settings
 from audio_search_utils import download_movie_from_youtube, extruct_audio_from_movie, extract_text_from_audio
 import embedding_text
 import pandas as pd
+from qdrant_work import QdrantManager
 
 
 def main():
@@ -42,6 +43,18 @@ def main():
     # text embedding
     EMBEDDING_MODEL = settings.EMBEDDING_MODEL
     embeddings = embedding_text.run(EMBEDDING_MODEL, text_df['text'].to_list()[:3])
+    text_df['vector'] = pd.Series(embeddings.tolist())
+
+    # save embeddings
+    QDRANT_URL = settings.QDRANT_URL
+    QDRANT_COLLECTION_NAME = settings.QDRANT_COLLECTION_NAME
+    EMBEDDING_DIM = settings.EMBEDDING_DIM
+    qdrant_manager = QdrantManager(url=QDRANT_URL, collection_name=QDRANT_COLLECTION_NAME)
+    qdrant_manager.create_collection(dim=EMBEDDING_DIM)
+    ids = text_df['id'].to_list()[:3]
+    vectors = text_df['vector'].to_list()[:3]
+    payloads = [{}, {}, {}]  # payloadを使う際は、{"city": "Berlin"}のように辞書で指定
+    qdrant_manager.add_vectors(ids, vectors, payloads)
 
 
 if __name__ == '__main__':

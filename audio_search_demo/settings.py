@@ -15,3 +15,6 @@ else:
 MOVIE_NAME = os.environ.get("MOVIE_NAME")
 BASE_VIDEO_URL = os.environ.get("BASE_VIDEO_URL")
 EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL")
+QDRANT_URL = os.environ.get("QDRANT_URL")
+QDRANT_COLLECTION_NAME = os.environ.get("QDRANT_COLLECTION_NAME")
+EMBEDDING_DIM = int(os.environ.get("EMBEDDING_DIM"))
