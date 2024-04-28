@@ -39,8 +39,9 @@ $ poetry run python search_by_text.py
 ## システム構成図
 
 ## 利用ツール
-- whisper
-- qdrant
+- [whisper](https://github.com/openai/whisper)
+- [qdrant](https://qdrant.tech/)
+- [sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2)
 
 ```
 # qdrantのdocker imageのpullと実行
