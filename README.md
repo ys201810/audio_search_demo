@@ -1,5 +1,5 @@
 # Audio Search Demo
-## まだ途中
+# まだ途中
 ざっくりとしたメモは[これ](./docs/memo.md)
 
 ## TODO
@@ -8,8 +8,31 @@
 - [x] wisperを利用して音声をテキスト化
 - [x] 学習済みモデルでテキストをエンべディング
 - [x] エンべディングしたベクトルをqdrantに登録
-- [ ] RAGで音声検索
+- [x] RAGで音声検索
 - [ ] 検出した時刻で動画を切り取る 
+
+## how to use
+### 0. 環境変数の設定
+audio_search_demo/env_files/.env.workを作成
+```
+MOVIE_NAME="9dA252nFHs8"  # yotubeの動画ID
+BASE_VIDEO_URL="https://www.youtube.com/watch?v="
+EMBEDDING_MODEL="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # 利用したいSentence Transformerのモデル名の指定
+EMBEDDING_DIM=384  # エンべディングする次元数
+QDRANT_URL="http://localhost:6333"
+```
+
+### 1. youtubeの動画の音声をQdrantに登録
+```
+$ docker run -p 6333:6333 qdrant/qdrant
+$ poetry run python make_embeddings_db.py
+```
+
+### 2. RAGで検索
+```
+$ poetry run python search_by_text.py
+```
+
 
 ## ドキュメント
 

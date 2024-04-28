@@ -1,16 +1,16 @@
 # coding=utf-8
-import pathlib
+from pathlib import Path
 import settings
 from audio_search_utils import download_movie_from_youtube, extruct_audio_from_movie, extract_text_from_audio
-import embedding_text
+from sentence_embedder import SentenceEmbedder
 import pandas as pd
-from qdrant_work import QdrantManager
+from qdrant_manager import QdrantManager
 import pyarrow as pa
 import pyarrow.parquet as pq
 
 
 def main():
-    base_path = pathlib.Path(__file__).resolve().parents[1]
+    base_path = Path(__file__).resolve().parents[1]
     MOVIE_NAME = settings.MOVIE_NAME
     BASE_VIDEO_URL = settings.BASE_VIDEO_URL
 
@@ -44,20 +44,21 @@ def main():
 
     # text embedding
     QDRANT_URL = settings.QDRANT_URL
-    QDRANT_COLLECTION_NAME = settings.QDRANT_COLLECTION_NAME
-    qdrant_manager = QdrantManager(url=QDRANT_URL, collection_name=QDRANT_COLLECTION_NAME)
+    qdrant_manager = QdrantManager(url=QDRANT_URL, collection_name=MOVIE_NAME)
 
-    df_file = base_path / 'data' / 'text' / f'{MOVIE_NAME}.parquet'
-    if df_file.exists():
-        table_loaded = pq.read_table(df_file)
+    parquet_file = base_path / 'data' / 'text' / f'{MOVIE_NAME}.parquet'
+    if parquet_file.exists():
+        table_loaded = pq.read_table(parquet_file)
         df_text = table_loaded.to_pandas()
         vectors = df_text['vector'].to_list()
+        print(f'{parquet_file.name}.parquet is already created')
     else:
         EMBEDDING_MODEL = settings.EMBEDDING_MODEL
-        embeddings = embedding_text.run(EMBEDDING_MODEL, df_text['text'].to_list())
+        sentence_embedder = SentenceEmbedder(model_name=EMBEDDING_MODEL)
+        embeddings = sentence_embedder.get_embedding_vector(EMBEDDING_MODEL, df_text['text'].to_list())
         df_text['vector'] = pd.Series(embeddings.tolist())
         table = pa.Table.from_pandas(df_text)
-        pq.write_table(table, df_file)
+        pq.write_table(table, parquet_file)
 
         # save embeddings
         EMBEDDING_DIM = settings.EMBEDDING_DIM
@@ -68,7 +69,7 @@ def main():
         qdrant_manager.add_vectors(ids, vectors, payloads)
 
     # search
-    search_id = 7
+    search_id = 50
     print(f'検索対象(id={search_id}): {df_text.query(f"id == {search_id}").text.item()}')
 
     search_results = qdrant_manager.search_vectors(vectors[search_id], top_k=3)
